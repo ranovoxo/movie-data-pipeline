@@ -11,6 +11,7 @@ Here's the **README.md** file for your Movie Data ETL Pipeline project:
 This is a fully Dockerized data engineering pipeline that extracts movie data from a public API, stores raw data in PostgreSQL, transforms it into silver and gold tables, and orchestrates the entire process with Apache Airflow. The project also includes structured logging to track ETL stages in detail.
 
 ---
+<img width="1624" height="580" alt="Blank diagram" src="https://github.com/user-attachments/assets/605501fe-f071-4911-a7c9-d49f2f87db36" />
 
 ⚠️ Disclaimer on Data Coverage
 Due to limitations of the free tier of the TMDB API, this project can only retrieve a maximum of 500 pages of movie data (20 movies per page), which limits the dataset to approximately 10,000 movies. As a result, this dataset does not represent the full TMDB movie catalog, and some titles may be missing.
