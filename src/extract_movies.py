@@ -8,12 +8,12 @@ from datetime import datetime, timezone
 
 TMDB_API_KEY = Variable.get("MY_API_KEY")
 URL = "https://api.themoviedb.org/3/discover/movie"
+TABLE_NAME = 'raw_movies'
 
+def fetch_movies_from_api():
+     # this sets up the logger and the parameter sets the postfix of the logfile name
+    log_extract_start("movies") 
 
-def extract_movies():
-    # Database connection settings (replace with actual values or load from .env)
-
-    log_extract_start()
     all_movies = []
     page = 1
     total_pages = 1  # will be updated from the API response
@@ -39,32 +39,40 @@ def extract_movies():
             movies = data.get("results", [])
             all_movies.extend(movies)
             page += 1
+        return all_movies
 
     except Exception as e:
         log_error('extract', f"Exception occurred during movie fetch: {str(e)}")
         raise
 
-    # Convert to DataFrame and save to PostgreSQL
-    log_info("extract",  f"Loading data into dataframe")
-
-    df = pd.DataFrame(all_movies)
-    
-    # add timestamp to each row
+def transform_movies(raw_movies):
+    df = pd.DataFrame(raw_movies)
     df['load_timestamp'] = datetime.now(timezone.utc)
+    
+    filtered_df = df[df['original_language'] == 'en']
+    return df
+
+
+def load_movies(df, table_name):
     engine = get_engine()
-
-    log_info("extract",  f"Writing data to postgress database")
-
+    log_info("extract", f"Writing data to Postgres database")
 
     try:
-        log_info('extract', f"Inserting {len(df)} records into 'raw_movies' table")
+        log_info("extract", f"Inserting {len(df)} records into '{table_name}' table")
 
-        df.to_sql('raw_movies', engine, if_exists='replace', index=False)
+        df.to_sql(table_name, engine, if_exists="replace", index=False)
 
-        log_info('extract', "Data successfully written to 'raw_movies' table")
+        log_info("extract", f"Data successfully written to '{table_name}' table")
 
     except Exception as e:
-        log_error('extract', f"Failed to write data to 'raw_movies' table: {str(e)}")
+        log_error("extract", f"Failed to write data to {table_name} table: {str(e)}")
         raise
 
+
+def start_extracting_movies(table_name="raw_movies"):
+    raw_movies = fetch_movies_from_api()
+    transformed_movies = transform_movies(raw_movies)
+    load_movies(transformed_movies, table_name)
     log_extract_end()
+
+    
