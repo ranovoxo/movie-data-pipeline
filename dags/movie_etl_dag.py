@@ -1,8 +1,7 @@
 import os
 import sys
 # get path of python files to run
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../ml')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.extract_movies import extract_movies
 from src.extract_genres import extract_genres
@@ -117,4 +116,7 @@ start_genre_predictions_ml = PythonOperator(
     dag=dag,
 )
 
-extract_movies_task >> extract_genres_task >> extract_budget_revenue_task >> transform_movies_silver_task >> transform_movies_gold_task >> preprocess_text_task >> train_genre_ml >> start_genre_predictions_ml
+extract_movies_task >> extract_genres_task >> extract_budget_revenue_task >> transform_movies_silver_task >> transform_movies_gold_task 
+
+
+# preprocess_text_task >> train_genre_ml >> start_genre_predictions_ml
