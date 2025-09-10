@@ -10,6 +10,11 @@ from db.db_connector import get_engine
 SOURCE_TABLE = "cleaned_overview_text"
 LOCAL_ARTIFACT_DIR = "/tmp/ml_artifacts"
 
+# load saved artifacts
+clf = joblib.load('ml/multi_label_classification/genre_model.joblib')
+vectorizer = joblib.load('ml/multi_label_classification/vectorizer.joblib')
+mlb = joblib.load('ml/multi_label_classification/label_binarizer.joblib')
+
 def load_data():
     engine = get_engine()
     df = pd.read_sql(f"SELECT title, genres, cleaned_overview FROM {SOURCE_TABLE}", engine)

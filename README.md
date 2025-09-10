@@ -1,5 +1,9 @@
 Here's the **README.md** file for your Movie Data ETL Pipeline project:
 
+## Author
+
+**Randal Carr**  
+
 ---
 
 # Movie Data ETL Pipeline with Airflow & PostgreSQL (Dockerized)
@@ -7,11 +11,26 @@ Here's the **README.md** file for your Movie Data ETL Pipeline project:
 This is a fully Dockerized data engineering pipeline that extracts movie data from a public API, stores raw data in PostgreSQL, transforms it into silver and gold tables, and orchestrates the entire process with Apache Airflow. The project also includes structured logging to track ETL stages in detail.
 
 ---
+<img width="1624" height="580" alt="Blank diagram" src="https://github.com/user-attachments/assets/605501fe-f071-4911-a7c9-d49f2f87db36" />
+
+⚠️ Disclaimer on Data Coverage
+Due to limitations of the free tier of the TMDB API, this project can only retrieve a maximum of 500 pages of movie data (20 movies per page), which limits the dataset to approximately 10,000 movies. As a result, this dataset does not represent the full TMDB movie catalog, and some titles may be missing.
+
+Future improvements will include a mechanism to incrementally insert new movies on a daily basis using TMDB’s daily export of new movie IDs, enabling broader and more up-to-date coverage over time.
+
 # 🎬 Movie Analytics Dashboard
 
 👉 [**Explore the interactive Top Movies chart on Tableau Public**](https://public.tableau.com/views/Movies-ETL-Pipeline-Dashboard/Sheet1)
 
 Get insights on movie ratings, genres, and yearly trends through an interactive Tableau dashboard. Hover over each bar to see vote counts, genres, and release dates. More visuals to come!
+
+👉 [**Explore the interactive Top Movies ROI chart on Tableau Public**](https://public.tableau.com/app/profile/randal.carr/viz/TopMoviesROI/Sheet1?publish=yes)
+
+Get insights on movie budgets, revenues, and ROI through an interactive Tableau dashboard. Hover over each point to see movie titles, budgets, revenues, and profitability. 
+---
+
+
+## Need to add env variables to airflow variables as key value. 
 
 ## Project Structure
 ```
@@ -25,6 +44,7 @@ movie_data_pipeline/
 │   ├── extract_movies.py           # Extract movie metadata
 │   ├── extract_genres.py           # Extract genre data
 │   ├── extract_budget_revenue.py   # Extract budget and revenue data
+|   ├── extract_cast_and_crew.py    # get top cast and crew data by movie id
 │   ├── transform_silver_layer.py   # Clean and deduplicate raw data
 │   ├── transform_gold_layer.py     # Enrich and finalize analytics-ready data
 │   ├── logger.py                   # Custom logger for ETL steps
@@ -33,6 +53,15 @@ movie_data_pipeline/
 │           ├── avg_rating_by_lang.csv
 │           ├── gold_top_movies.csv
 │           └── yearly_counts.csv
+│
+├── terraform/                       # ← new directory for all Terraform files
+│   ├── backend.tf                   # S3 + DynamoDB backend
+│   ├── provider.tf                  # AWS provider + versions
+│   ├── variables.tf                 # all var declarations
+│   ├── ec2.tf                       # security group, EC2, EIP, data lookups
+│   ├── iam.tf                       # IAM data and aws_iam_group_membership
+│   ├── outputs.tf                   # expose pipeline_ip, instance_id, SG ID
+│   └── terraform.tfvars             # **gitignored**: key_name, vpc_id, subnet_id, etc.
 │
 ├── ml/
 │   ├── predict_genre.py 
@@ -151,7 +180,22 @@ POSTGRES_DB=movies
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 ```
+## 🔐 Managing Secrets and Configuration with Airflow Variables
 
+This project uses **Apache Airflow Variables** to securely manage secrets and configuration values at runtime. For example, the TMDB API key is accessed within DAGs or Python scripts using Airflow’s built-in `Variable.get()` method:
+
+```python
+from airflow.models import Variable
+
+TMDB_API_KEY = Variable.get("MY_API_KEY")
+
+✅ Setting the Variable in Airflow
+  Via Airflow UI:
+
+  Go to Admin → Variables
+  Click the "+" button to add a new variable
+  Set Key to MY_API_KEY
+  Set Value to your actual TMDB API key
 ### 3. Build and Start Services
 
 Run the following command to build and start the Docker services:

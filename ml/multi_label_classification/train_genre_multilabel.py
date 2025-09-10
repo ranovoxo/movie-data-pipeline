@@ -52,10 +52,13 @@ def train_data(df):
 
 
     # save artifacts for inference for next task "predict_genere"
-    os.makedirs(LOCAL_ARTIFACT_DIR, exist_ok=True)
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H%M%S")
-    s3_prefix = f"movie-genre-classifier/v={timestamp}/"
-    s3 = boto3.client("s3")
+    joblib.dump(clf, 'ml/multi_label_classification/genre_model.joblib')
+    print("Training complete and model genre_model.joblib saved.")
+    joblib.dump(vectorizer, 'ml/multi_label_classification/vectorizer.joblib')
+    print("Training complete and model vectorizer.joblib saved.")
+    joblib.dump(mlb, 'ml/multi_label_classification/label_binarizer.joblib')
+    print("Training complete and model label_binarizer.joblib saved.")
+
 
     artifacts = {
         'model': (clf, 'genre_model.joblib'),

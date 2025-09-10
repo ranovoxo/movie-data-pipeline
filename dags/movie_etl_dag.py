@@ -3,14 +3,15 @@ import sys
 # get path of python files to run
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.extract_movies import extract_movies
+from src.extract_movies import start_extracting_movies
 from src.extract_genres import extract_genres
 from src.extract_budget_revenue import extract_movie_financials
+from src.extract_cast_and_crew import get_all_cast_and_crew_parallel
 from src.transform_silver_layer import transform_to_silver
 from src.transform_gold_layer import transform_to_gold
-from ml.preprocess_text import preprocess_text
-from ml.train_genre_multilabel import start_training
-from ml.predict_genre import start_genre_predictions
+from ml.multi_label_classification.preprocess_text import preprocess_text
+from ml.multi_label_classification.train_genre_multilabel import start_training
+from ml.multi_label_classification.predict_genre import start_genre_predictions
 from src.logger import *
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow import DAG
@@ -37,19 +38,13 @@ dag = DAG(
 )
 
 def get_movies():
-    log_extract_start()
-    extract_movies()  
-    log_extract_end()
+    start_extracting_movies()
 
 def get_genres():
-    log_extract_start()
     extract_genres()
-    log_extract_end()
 
 def get_budget_revenue():
-    log_extract_start()
     extract_movie_financials()
-    log_extract_end()
 
 def transform_to_silver_layer():
     log_transform_start()
@@ -77,6 +72,13 @@ extract_genres_task = PythonOperator(
 extract_budget_revenue_task = PythonOperator(
     task_id='extract_budget_revenue_task',
     python_callable=get_budget_revenue,
+    provide_context=True,
+    dag=dag,
+)
+
+extract_cast_and_crew = PythonOperator(
+    task_id='extract_cast_and_crew',
+    python_callable=get_all_cast_and_crew_parallel,
     provide_context=True,
     dag=dag,
 )
@@ -116,7 +118,4 @@ start_genre_predictions_ml = PythonOperator(
     dag=dag,
 )
 
-extract_movies_task >> extract_genres_task >> extract_budget_revenue_task >> transform_movies_silver_task >> transform_movies_gold_task 
-
-
-# preprocess_text_task >> train_genre_ml >> start_genre_predictions_ml
+extract_movies_task >> extract_genres_task >> extract_budget_revenue_task >> extract_cast_and_crew >> transform_movies_silver_task >> transform_movies_gold_task >> preprocess_text_task >> train_genre_ml >> start_genre_predictions_ml

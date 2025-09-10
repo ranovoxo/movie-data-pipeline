@@ -1,10 +1,32 @@
 version: "3.8"
 
 services:
+<<<<<<< HEAD
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
     restart: always
+=======
+  postgres:
+    image: postgres:14
+    shm_size: '1gb'
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PW}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow_net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+>>>>>>> f68776ceb63e50b550a1bd3871c8264bf9f235d4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
@@ -15,19 +37,52 @@ services:
     image: apache/airflow:2.7.1-python3.10
     container_name: airflow-webserver
     restart: always
+    depends_on:
+      - postgres
     env_file:
       - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      # point at RDS via your .env
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PW}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PW}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__FERNET_KEY}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    ports:
-      - "8080:8080"
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+      SPARK_HOME: /opt/spark
+      PYSPARK_PYTHON: python3
+      PYTHONPATH: /opt/airflow
     volumes:
       - ./dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
+      - ./logs:/opt/airflow/logs
+      - ./db:/opt/airflow/db    
+      - ./ml:/opt/airflow/ml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${TABLEAU_EXPORT_PATH}:/opt/airflow/src/tableau/hyper_exports
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - airflow_net
+
+  airflow-scheduler:
+    build: .
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      - postgres
+      - airflow-webserver
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PW}@postgres:5432/${POSTGRES_DB}
+      PYTHONPATH: /opt/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./logs:/opt/airflow/logs
+      - ./db:/opt/airflow/db   
       - ./ml:/opt/airflow/ml
       - ./sql:/opt/airflow/sql
       - ./db:/opt/airflow/db
@@ -43,9 +98,11 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PW}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     command: scheduler
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./src:/opt/airflow/src
-      - ./ml:/opt/airflow/ml
-      - ./sql:/opt/airflow/sql
-      - ./db:/opt/airflow/db
+    networks:
+      - airflow_net
+
+volumes:
+  postgres_data:
+
+networks:
+  airflow_net:

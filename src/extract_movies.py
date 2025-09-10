@@ -48,8 +48,9 @@ def fetch_movies_from_api():
 def transform_movies(raw_movies):
     df = pd.DataFrame(raw_movies)
     df['load_timestamp'] = datetime.now(timezone.utc)
-    
+
     filtered_df = df[df['original_language'] == 'en']
+    
     return df
 
 
